@@ -124,8 +124,7 @@ class Record:
 ##########################################################
 
 
-filename = './test.xlsx'
-filename = '/Users/taeyoonlee/Downloads/11workfee.xlsx'
+filename = './sample_workbook.xlsx'
 
 if os.path.exists(filename):
     print("Start Pasing...")
@@ -136,7 +135,8 @@ if os.path.exists(filename):
     abroad_records = handle_abroad(abroad)
     
     # 종합 정리
-    total = wb['종합']
+    total = wb.create_sheet('sheet3')
+    total.title = '종합'
     record_idx = 3
     for record in domestic_records:
         total.cell(record_idx,2).value = record.date.strftime('%m.%d')
@@ -154,8 +154,8 @@ if os.path.exists(filename):
         record_idx += 1
 
     # 종료
+    wb.save(filename)
     wb.close()
-    wb.save('{}월업무지원비.xlsx'.format("11"))
 
 else:
     print(f"{filename} is not exists.")

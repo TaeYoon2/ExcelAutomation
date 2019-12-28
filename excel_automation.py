@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import datetime
 import openpyxl
 
@@ -118,57 +119,70 @@ class Record:
 
     def __lt__(self, other):
              return self.date < other.date
+###
+def write_records(to_records, from_records, record_idx):
+    for record in from_records:
+        to_records.cell(record_idx,2).value = record.date.strftime('%m.%d')
+        to_records.cell(record_idx,3).value = record.money
+        to_records.cell(record_idx,4).value = record.where
+        to_records.cell(record_idx,5).value = record.purpose
+        record_idx += 1
+    return record_idx
+
+
+
+### 
+def excel_list(dirname):
+    excel_list = []
+    filename_type = r'^.+\.xlsx'
+    for filename in os.listdir(dirname):
+        if re.search(filename_type, filename):
+            excel_list.append(filename)
+    return excel_list
+
+def check_worksheet(dirname, filelist):
+    checked_list = []
+    for filename in filelist:
+        filepath = os.path.join(dirname, filename)
+        wb = openpyxl.load_workbook(filepath)
+        if all(item in wb.sheetnames for item in ['국내','국외']):
+            checked_list.append(filename)
+    return checked_list
+
+def find_checked_excel_list(dirname):
+    excel_filelist = excel_list(dirname)
+    checked_excel_list = check_worksheet(dirname, excel_filelist)
+    return checked_excel_list
+
+def process_excel_costs(filepath):
+    if os.path.exists(filepath):
+        print("Start Pasing...")
+        wb = openpyxl.load_workbook(filepath)
+        domestic = wb['국내']
+        abroad = wb['국외']
+        domestic_records = handle_domestic(domestic)
+        abroad_records = handle_abroad(abroad)
+
+        # 종합 정리
+        total = wb.create_sheet('sheet3')
+        total.title = '종합'
+        record_idx = 3
+        record_idx = write_records(total, domestic_records, record_idx)
+        record_idx += 1
+        record_idx = write_records(total, abroad_records, record_idx)
+        # 종료
+        wb.save(filepath)
+        wb.close()
 
 ##########################################################
 # 메인
 ##########################################################
 
+download_dir = "/Users/taeyoonlee/Downloads/"
+checked_excel_list = find_checked_excel_list(download_dir)
 
+for excel in checked_excel_list:
+    filepath = os.path.join(download_dir, excel)
+    process_excel_costs(filepath)
 filename = './sample_workbook.xlsx'
-
-if os.path.exists(filename):
-    print("Start Pasing...")
-    wb = openpyxl.load_workbook(filename)
-    domestic = wb['국내']
-    abroad = wb['국외']
-    domestic_records = handle_domestic(domestic)
-    abroad_records = handle_abroad(abroad)
-    
-    # 종합 정리
-    total = wb.create_sheet('sheet3')
-    total.title = '종합'
-    record_idx = 3
-    for record in domestic_records:
-        total.cell(record_idx,2).value = record.date.strftime('%m.%d')
-        total.cell(record_idx,3).value = record.money
-        total.cell(record_idx,4).value = record.where
-        total.cell(record_idx,5).value = record.purpose
-        record_idx += 1
-
-    record_idx += 1
-    for record in abroad_records:
-        total.cell(record_idx,2).value = record.date.strftime('%m.%d')
-        total.cell(record_idx,3).value = record.money
-        total.cell(record_idx,4).value = record.where
-        total.cell(record_idx,5).value = record.purpose
-        record_idx += 1
-
-    # 종료
-    wb.save(filename)
-    wb.close()
-
-else:
-    print(f"{filename} is not exists.")
-    wb = openpyxl.Workbook()
-    sheet1 = wb.create_sheet('sheet1')
-    sheet2 = wb.create_sheet('sheet2')
-    sheet3 = wb.create_sheet('sheet3')
-    sheet1.title = '국내'
-    sheet2.title = '국외'
-    sheet2.title = '종합'
-    wb.close()
-
-    wb.save('text.xlsx')
-
-
 

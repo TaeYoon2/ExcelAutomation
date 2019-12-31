@@ -12,11 +12,11 @@ import openpyxl
 # 승인일시(B2) 승인번호(C2) 가맹점번호(D2) 
 # 가맹점명(E2) 승인금액(F2) 매출종류(G2) 
 # 접수월일(H2) 승인취소(I2)
-fields = range(2,10)
+fields1_range = range(2,10)
 # 카드번호(B2) 승인번호(C2) 처리일(D2) 매출일(E2) 
 # 종류(F2) 가맹점(G2) 현지금액(H2) 결제금액($)(I2) 
 # 이용금액(W)(J2) 국가(K2) 도시(L2)
-
+fields2_range = range(2,13)
 
 # 날짜 및 시간 지정 문자열	의미
 # %Y	앞의 빈자리를 0으로 채우는 4자리 연도 숫자
@@ -28,42 +28,9 @@ fields = range(2,10)
 # %A	영어로 된 요일 문자열
 # %B	영어로 된 월 문자열
 
-def handle_abroad(worksheet):
-    '''
-        breif: handle abroad money records
-    '''
-    records = []
-    for idx in range(3, worksheet.max_row+1):
-        if worksheet.cell(idx,5).value is not  None:
-            dt = worksheet.cell(idx,5).value
-            record = Record(dt, worksheet.cell(idx,10).value, worksheet.cell(idx,7).value)
-            records.append(record)
-        else:
-            print("국외 결제 레코드 총 갯수 : ", idx-3) # 첫째줄, 제목줄, 마지막 공백 줄
-            break
-    records.sort()
-    return records
-
-def handle_domestic(worksheet):
-    '''
-        breif: handle domestic money records
-    '''
-    records = []
-    for idx in range(3, worksheet.max_row+1):
-        if worksheet.cell(idx,2).value is not  None:
-            # dt = datetime.datetime.strptime(str(worksheet.cell(idx,2).value), "%Y-%m-%d %H:%M:%S")
-            dt = worksheet.cell(idx,2).value
-            record = Record(dt, worksheet.cell(idx,6).value, worksheet.cell(idx,5).value)
-            records.append(record)
-        else:
-            print("국내 결제 레코드 총 갯수 : ", idx-3) # 첫째줄, 제목줄, 마지막 공백 줄
-            break
-    records.sort()
-    return records
-
 class Record:
     '''
-        breif: It is a Data Class of Money book.
+        brief: It is a Data Class of Money book.
     '''
     def __init__(self, date, money, where):
         # 자주 사용되는 장소
@@ -119,8 +86,46 @@ class Record:
 
     def __lt__(self, other):
              return self.date < other.date
+
+###
+def handle_abroad(worksheet):
+    '''
+        brief: handle abroad money records
+    '''
+    records = []
+    for idx in range(3, worksheet.max_row+1):
+        if worksheet.cell(idx,5).value is not  None:
+            dt = worksheet.cell(idx,5).value
+            record = Record(dt, worksheet.cell(idx,10).value, worksheet.cell(idx,7).value)
+            records.append(record)
+        else:
+            print("국외 결제 레코드 총 갯수 : ", idx-3) # 첫째줄, 제목줄, 마지막 공백 줄
+            break
+    records.sort()
+    return records
+
+def handle_domestic(worksheet):
+    '''
+        brief: handle domestic money records
+    '''
+    records = []
+    for idx in range(3, worksheet.max_row+1):
+        if worksheet.cell(idx,2).value is not  None:
+            # dt = datetime.datetime.strptime(str(worksheet.cell(idx,2).value), "%Y-%m-%d %H:%M:%S")
+            dt = worksheet.cell(idx,2).value
+            record = Record(dt, worksheet.cell(idx,6).value, worksheet.cell(idx,5).value)
+            records.append(record)
+        else:
+            print("국내 결제 레코드 총 갯수 : ", idx-3) # 첫째줄, 제목줄, 마지막 공백 줄
+            break
+    records.sort()
+    return records
+
 ###
 def write_records(to_records, from_records, record_idx):
+    '''
+        brief: write records to a excel-worksheet
+    '''
     for record in from_records:
         to_records.cell(record_idx,2).value = record.date.strftime('%m.%d')
         to_records.cell(record_idx,3).value = record.money
@@ -133,6 +138,9 @@ def write_records(to_records, from_records, record_idx):
 
 ### 
 def excel_list(dirname):
+    '''
+        brief: lists up of a directory
+    '''
     excel_list = []
     filename_type = r'^.+\.xlsx'
     for filename in os.listdir(dirname):
@@ -140,21 +148,31 @@ def excel_list(dirname):
             excel_list.append(filename)
     return excel_list
 
-def check_worksheet(dirname, filelist):
+def filter_worksheet(dirname, filelist):
+    '''
+        brief: filter a list with the cost worksheet condition
+    '''
     checked_list = []
     for filename in filelist:
         filepath = os.path.join(dirname, filename)
         wb = openpyxl.load_workbook(filepath)
         if all(item in wb.sheetnames for item in ['국내','국외']):
-            checked_list.append(filename)
+            if not '종합' in wb.sheetnames:
+                checked_list.append(filename)
     return checked_list
 
 def find_checked_excel_list(dirname):
+    '''
+        brief: lists up & filter excel workbooks of a directory
+    '''
     excel_filelist = excel_list(dirname)
-    checked_excel_list = check_worksheet(dirname, excel_filelist)
+    checked_excel_list = filter_worksheet(dirname, excel_filelist)
     return checked_excel_list
 
 def process_excel_costs(filepath):
+    '''
+        brief: process(sum up) worksheets; '국내', '국외' to '종합'
+    '''
     if os.path.exists(filepath):
         print("Start Pasing...")
         wb = openpyxl.load_workbook(filepath)

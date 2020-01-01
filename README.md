@@ -23,6 +23,7 @@
 * draw_barchart           
   - draw barchart from processed worksheet
 
+### examples
 * Input(Domestic & Abroad Cost list)
 ![Domestic](./domestic.png)
 ![Abroad](./abroad.png)

@@ -3,7 +3,12 @@ import re
 import sys
 import datetime
 import openpyxl
+from openpyxl.chart import BarChart, Reference, Series
 
+def close_book(wb, filepath):
+    # 종료
+    wb.save(filepath)
+    wb.close()
 ########################################################
 ### 업무지원비 서류 작업
 ########################################################
@@ -136,7 +141,7 @@ def write_records(to_records, from_records, record_idx):
 
 
 
-### 
+### List & Filter the workbooks
 def excel_list(dirname):
     '''
         brief: lists up of a directory
@@ -169,6 +174,7 @@ def find_checked_excel_list(dirname):
     checked_excel_list = filter_worksheet(dirname, excel_filelist)
     return checked_excel_list
 
+### Sum up to new worksheet
 def process_excel_costs(filepath):
     '''
         brief: process(sum up) worksheets; '국내', '국외' to '종합'
@@ -188,9 +194,16 @@ def process_excel_costs(filepath):
         record_idx = write_records(total, domestic_records, record_idx)
         record_idx += 1
         record_idx = write_records(total, abroad_records, record_idx)
-        # 종료
-        wb.save(filepath)
-        wb.close()
+
+        return wb, record_idx
+
+### Chart
+def draw_barchart(worksheet, last_idx):
+    values = Reference(worksheet, min_col=2, min_row=2, max_col=3, max_row=last_idx)
+    chart = BarChart()
+    chart.add_data(values)
+    worksheet.add_chart(chart, "H2")
+
 
 ##########################################################
 # 메인
@@ -201,6 +214,8 @@ checked_excel_list = find_checked_excel_list(download_dir)
 
 for excel in checked_excel_list:
     filepath = os.path.join(download_dir, excel)
-    process_excel_costs(filepath)
-filename = './sample_workbook.xlsx'
+    each_workbook, each_last_record_idx = process_excel_costs(filepath)
+    draw_barchart(each_workbook['종합'], each_last_record_idx)
+    close_book(each_workbook, filepath)
+
 
